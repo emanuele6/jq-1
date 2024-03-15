@@ -819,11 +819,16 @@ recurse:
             continue;
 
 #ifndef TIME_MAX
+#ifdef _WIN32
+#define TIME_MAX	INT32_MAX
+#else
 #define TIME_MAX	INT64_MAX
+#endif
 #endif
         case 's':	/* seconds since the epoch */
             {
-                time_t sse = 0;
+                time_t tsse;
+                uint64_t sse = 0;
                 uint64_t rulim = TIME_MAX;
 
                 if (*bp < '0' || *bp > '9') {
@@ -838,14 +843,16 @@ recurse:
                 } while ((sse * 10 <= TIME_MAX) &&
                      rulim && *bp >= '0' && *bp <= '9');
 
-                if (sse < 0 || (uint64_t)sse > TIME_MAX) {
+                if (sse > TIME_MAX) {
                     bp = NULL;
                     continue;
                 }
+
+                tsse = sse;
 #ifdef _WIN32
-                if (localtime_s(tm, &sse) == 0)
+                if (localtime_s(tm, &tsse) == 0)
 #else
-                if (localtime_r(&sse, tm))
+                if (localtime_r(&tsse, tm))
 #endif
                     state |= S_YDAY | S_WDAY | S_MON | S_MDAY | S_YEAR;
                 else
